@@ -35,9 +35,29 @@ resource "aws_cloudfront_cache_policy" "data" {
   }
 }
 
+resource "aws_cloudfront_response_headers_policy" "public" {
+  name    = "${var.name_prefix}-public"
+  comment = "publikes/${var.name_prefix}"
+
+  security_headers_config {
+    content_security_policy {
+      content_security_policy = "default-src 'none'; connect-src 'self' react-tweet.vercel.app; img-src 'self' rollingapple.net *.twimg.com; media-src *.twimg.com; script-src 'self'; style-src 'self'; frame-ancestors 'none'"
+      override                = true
+    }
+    content_type_options {
+      override = true
+    }
+    strict_transport_security {
+      access_control_max_age_sec = 63072000
+      override                   = true
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "public" {
   enabled         = true
   is_ipv6_enabled = true
+  http_version    = "http2and3"
   comment         = "publikes/${var.name_prefix}"
   aliases         = [var.app_domain]
 
@@ -72,9 +92,10 @@ resource "aws_cloudfront_distribution" "public" {
     allowed_methods = ["GET", "HEAD", "OPTIONS", ]
     cached_methods  = ["GET", "HEAD"]
 
-    target_origin_id         = "s3public-data"
-    cache_policy_id          = aws_cloudfront_cache_policy.data.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.Managed-CORS-S3Origin.id
+    target_origin_id           = "s3public-data"
+    cache_policy_id            = aws_cloudfront_cache_policy.data.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.Managed-CORS-S3Origin.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.public.id
 
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
@@ -84,9 +105,10 @@ resource "aws_cloudfront_distribution" "public" {
     allowed_methods = ["GET", "HEAD", "OPTIONS", ]
     cached_methods  = ["GET", "HEAD"]
 
-    target_origin_id         = "s3public-ui"
-    cache_policy_id          = data.aws_cloudfront_cache_policy.Managed-CachingOptimized.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.Managed-CORS-S3Origin.id
+    target_origin_id           = "s3public-ui"
+    cache_policy_id            = data.aws_cloudfront_cache_policy.Managed-CachingOptimized.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.Managed-CORS-S3Origin.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.public.id
 
     compress               = true
     viewer_protocol_policy = "redirect-to-https"
